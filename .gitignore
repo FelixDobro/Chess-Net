@@ -1,0 +1,17 @@
+# Ignoriere alle .log-Dateien
+*.log
+
+# Ignoriere Ordner "tmp"
+wandb
+
+# Ignoriere Datei "secret.env"
+secret.env
+
+# Ignoriere alles im Verzeichnis "data", aber nicht die README
+data/training_chunk_data
+data/training_chunk_data.zip
+
+!data/README.md
+checkpoints/*
+
+play_game.py
