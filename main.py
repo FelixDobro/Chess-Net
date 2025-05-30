@@ -19,7 +19,7 @@ if __name__ == "__main__":
     logger.watch_model(model)
     batch_size = config["batch_size"]
     chunk_dir = config["data_path"]
-    chunk_files = glob.glob(f'{chunk_dir}/*.npz')[0:2]
+    chunk_files = glob.glob(f'{chunk_dir}/*.npz')
     print(f"# of chunk files: {len(chunk_files)}")
 
     train(

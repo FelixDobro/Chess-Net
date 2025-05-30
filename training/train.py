@@ -1,6 +1,6 @@
 import torch
 import torch.nn.functional as F
-from torch.cuda.amp import autocast, GradScaler
+from torch.amp import GradScaler, autocast
 from torch.utils.data import DataLoader
 
 from config import config
@@ -10,8 +10,8 @@ from data.chunked_dataset import ChunkedDataset
 def train(model, chunk_files, logger):
 
     optimizer = torch.optim.Adam(model.parameters(), lr=config["lr"])
-    scaler = GradScaler()
     device = config["device"]
+    scaler = GradScaler(device)
     log_freq = config["log_freq"]
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
         optimizer, mode='min', factor=0.5, patience=3
@@ -26,13 +26,13 @@ def train(model, chunk_files, logger):
             batch_size=config["batch_size"],
             shuffle=True,
             prefetch_factor=config["prefetch_per_worker"])
+
         model.train()
         total_loss = total_policy_loss = total_value_loss = total_samples = 0
-
         for i, (xb, p_targets, value_targets) in enumerate(loader):
             xb, p_targets, value_targets = xb.to(device), p_targets.to(device), value_targets.to(device)
             optimizer.zero_grad()
-            with autocast():
+            with autocast(device):
                 p_out, v_out = model(xb)
                 v_out = v_out.squeeze(-1)
 

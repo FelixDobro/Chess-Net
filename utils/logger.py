@@ -1,8 +1,6 @@
 import wandb
 from config import config
 
-wandb.login(key=config["api_key"])
-
 class Logger:
     def __init__(self, project, config):
         wandb.init(project=project, config=config)
