@@ -16,3 +16,4 @@ training_chunk_data
 checkpoints/*
 
 play_game.py
+Miniconda3-latest-Linux-x86_64.sh
