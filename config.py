@@ -10,7 +10,7 @@ config = {
     ## training
 
     "batch_size": 64,
-    "lr": 0.001,
+    "lr": 0.0001,
     "epochs": 1000,
     "log_freq": 100,
     "value_weight": 1,
@@ -18,8 +18,8 @@ config = {
 
 
     ## data
-    "num_workers": 40,
-    "data_path": "training_chunk_data",
+    "num_workers": 4,
+    "data_path": "data/training_chunk_data",
     "chunks_per_epoch": 20,
-    "prefetch_per_worker": 10
+    "prefetch_per_worker": 3
 }

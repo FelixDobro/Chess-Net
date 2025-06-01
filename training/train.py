@@ -13,9 +13,7 @@ def train(model, chunk_files, logger):
     device = config["device"]
     scaler = GradScaler(device)
     log_freq = config["log_freq"]
-    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
-        optimizer, mode='min', factor=0.5, patience=3
-    )
+
 
     for epoch in range(config["epochs"]):
         dataset = ChunkedDataset(chunk_files)
@@ -70,7 +68,7 @@ def train(model, chunk_files, logger):
         })
         torch.save(model.state_dict(), f"{config['model_path']}/model_{config['epoch']}.pt")
         config["epoch"] += 1
-        scheduler.step(avg_loss)
+
 
 
     logger.finish()
