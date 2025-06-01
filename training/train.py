@@ -9,22 +9,23 @@ from data.chunked_dataset import ChunkedDataset
 
 def train(model, chunk_files, logger):
 
-    optimizer = torch.optim.Adam(model.parameters(), lr=config["lr"])
+    optimizer = torch.optim.Adam(
+        model.parameters(), 
+        lr=config["lr"],
+        weight_decay = config["weight_decay"])
     device = config["device"]
     scaler = GradScaler(device)
     log_freq = config["log_freq"]
-
+    dataset = ChunkedDataset(chunk_files)
+    loader = DataLoader(
+        num_workers=config["num_workers"],
+        pin_memory=True,
+        dataset=dataset,
+        batch_size=config["batch_size"],
+        shuffle=True,
+        prefetch_factor=config["prefetch_per_worker"])
 
     for epoch in range(config["epochs"]):
-        dataset = ChunkedDataset(chunk_files)
-        loader = DataLoader(
-            num_workers=config["num_workers"],
-            pin_memory=True,
-            dataset=dataset,
-            batch_size=config["batch_size"],
-            shuffle=True,
-            prefetch_factor=config["prefetch_per_worker"])
-
         model.train()
         total_loss = total_policy_loss = total_value_loss = total_samples = 0
         for i, (xb, p_targets, value_targets) in enumerate(loader):

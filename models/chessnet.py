@@ -21,7 +21,7 @@ class ChessNet(nn.Module):
         super().__init__()
         self.conv1 = nn.Conv2d(18, 256, kernel_size=3, padding=1)
         self.bn1 = nn.BatchNorm2d(256)
-        self.shared_res_blocks = nn.Sequential(*[ResidualBlock(256) for _ in range(10)])
+        self.shared_res_blocks = nn.Sequential(*[ResidualBlock(256) for _ in range(20)])
 
         # Split Heads
         # Policy Tower
