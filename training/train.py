@@ -1,75 +1,74 @@
 import torch
 import torch.nn.functional as F
+import gc
 from torch.amp import GradScaler, autocast
 from torch.utils.data import DataLoader
 
 from config import config
 from data.chunked_dataset import ChunkedDataset
 
-
 def train(model, chunk_files, logger):
-
-    optimizer = torch.optim.Adam(
-        model.parameters(), 
-        lr=config["lr"],
-        weight_decay = config["weight_decay"])
     device = config["device"]
+    print("Device: ", device)
+    model.to(device)
+    optimizer = torch.optim.Adam(
+        model.parameters(),
+        lr=config["lr"],
+        weight_decay=config["weight_decay"]
+    )
+
+    chunks_per_set = config["chunks_per_set"]
+    partitions = [chunk_files[i * chunks_per_set: (i + 1) * chunks_per_set]
+    for i in range(len(chunk_files) // chunks_per_set)]
+
     scaler = GradScaler(device)
-    log_freq = config["log_freq"]
-    dataset = ChunkedDataset(chunk_files)
-    loader = DataLoader(
-        num_workers=config["num_workers"],
-        pin_memory=True,
-        dataset=dataset,
-        batch_size=config["batch_size"],
-        shuffle=True,
-        prefetch_factor=config["prefetch_per_worker"])
 
     for epoch in range(config["epochs"]):
-        model.train()
-        total_loss = total_policy_loss = total_value_loss = total_samples = 0
-        for i, (xb, p_targets, value_targets) in enumerate(loader):
-            xb, p_targets, value_targets = xb.to(device), p_targets.to(device), value_targets.to(device)
-            optimizer.zero_grad()
-            with autocast(device):
-                p_out, v_out = model(xb)
-                v_out = v_out.squeeze(-1)
+        total_loss = 0.0
+        total_samples = 0
 
-                value_loss = F.mse_loss(v_out, value_targets)
-                policy_loss = F.cross_entropy(p_out, p_targets)
-                loss = config.get("value_weight", 1.0) * value_loss + config.get("policy_weight", 1.0) * policy_loss
+        for partition in partitions:
+            dataset = ChunkedDataset(partition)
+            loader = DataLoader(
+                dataset=dataset,
+                batch_size=config["batch_size"],
+                shuffle=True,
+                num_workers=config["num_workers"],
+                pin_memory=True
+            )
+            model.train()
 
-            scaler.scale(loss).backward()
-            scaler.step(optimizer)
-            scaler.update()
+            for step, (xb, p_targets) in enumerate(loader):
+                xb, p_targets = xb.to(device), p_targets.to(device)
+                optimizer.zero_grad()
+                with autocast(device_type=device):
+                    p_out = model(xb)
+                    loss = F.cross_entropy(p_out, p_targets)
 
-            batch_size = xb.size(0)
-            total_loss += loss.item() * batch_size
-            total_policy_loss += policy_loss.item() * batch_size
-            total_value_loss += value_loss.item() * batch_size
-            total_samples += batch_size
-            if i % log_freq == 0:
-                logger.log({
-                    "batch/loss_total": loss.item(),
-                    "batch/loss_policy": policy_loss.item(),
-                    "batch/loss_value": value_loss.item(),
-                    "batch/lr": optimizer.param_groups[0]["lr"]
-                })
+                scaler.scale(loss).backward()
+                scaler.step(optimizer)
+                scaler.update()
+
+                batch_size = xb.size(0)
+                total_loss += loss.item() * batch_size
+                total_samples += batch_size
+                if step % config["batch_log"] == 0:
+                    logger.log({
+                        "step/loss_policy": loss.item(),
+                        "step": step
+                    })
+            del loader
+            del dataset
+            gc.collect()
 
 
         avg_loss = total_loss / total_samples
-        avg_policy_loss = total_policy_loss / total_samples
-        avg_value_loss = total_value_loss / total_samples
         logger.log({
-            "train/loss_total": avg_loss,
-            "train/loss_policy": avg_policy_loss,
-            "train/loss_value": avg_value_loss,
+            "train/loss_policy": avg_loss,
             "train/lr": optimizer.param_groups[0]["lr"],
             "epoch": epoch
         })
-        torch.save(model.state_dict(), f"{config['model_path']}/model_{config['epoch']}.pt")
-        config["epoch"] += 1
-
-
+        torch.save(model.state_dict(), f"{config['model_path']}/model_{config['model_version']}.pt")
+        config["model_version"] += 1
 
     logger.finish()
