@@ -8,15 +8,14 @@ class ZarrDataset(Dataset):
         self.X = zarr.open(x_path, mode='r')
         self.Y = zarr.open(y_path, mode='r')
         self.batch_size = batch_size
-        self.indices = np.arange(self.X.shape[0] // batch_size)
-        np.random.shuffle(self.indices)
+        self.n_batches = self.X.shape[0] // self.batch_size + (1 if self.X.shape[0] % self.batch_size != 0 else 0)
 
     def __len__(self):
-        return self.indices.shape[0]
+        return self.n_batches
 
     def __getitem__(self, idx):
-        i = idx * self.batch_size
-        j = i + self.batch_size
-        x = self.X[i:j]  # liest Blockweise = effizient
-        y = self.Y[i:j]
-        return torch.from_numpy(x), torch.from_numpy(y).long()
+        start = idx * self.batch_size
+        end = min(start + self.batch_size, self.X.shape[0])
+        x = self.X[start:end]
+        y = self.Y[start:end]
+        return torch.from_numpy(x).float(), torch.from_numpy(y).long()

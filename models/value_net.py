@@ -21,17 +21,16 @@ class ChessNet(nn.Module):
         super().__init__()
         self.conv1 = nn.Conv2d(18, 64, kernel_size=3, padding=1)
         self.bn1 = nn.BatchNorm2d(64)
-        self.res_blocks = nn.Sequential(*[ResidualBlock(64) for _ in range(7)])
+        self.res_blocks = nn.Sequential(*[ResidualBlock(64) for _ in range(5)])
 
-        # Split Heads
-        # Policy Tower
-        self.policy_head = nn.Sequential(
+
+        self.value_head = nn.Sequential(
             nn.Conv2d(64, 64, kernel_size=1),
             nn.ReLU(),
             nn.Flatten(),
             nn.Linear(64 * 8 * 8, 1024),
             nn.ReLU(),
-            nn.Linear(1024, 1968)
+            nn.Linear(1024, 1)
         )
 
     def forward(self, x):
@@ -39,5 +38,5 @@ class ChessNet(nn.Module):
         x = self.bn1(x)
         x = F.relu(x)
         x = self.res_blocks(x)
-        p = self.policy_head(x)
-        return p
+        v = self.value_head(x)
+        return v
