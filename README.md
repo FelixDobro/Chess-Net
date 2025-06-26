@@ -1,2 +1,8 @@
 # Chess-Net
-I want to create a chess Bot using a combined policy + value net -supervised
+The Goal is to make a decent chessbot using Machine Learning
+
+-- Trying out different networks as well as targets
+
+main ideas:
+policy for move prediction
+value for board evaluation
