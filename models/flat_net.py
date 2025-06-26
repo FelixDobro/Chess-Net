@@ -2,6 +2,15 @@ import torch
 from torch import nn
 from torch.nn import functional as F
 
+
+# Converts a chess.Board object into a flat 773-dimensional vector:
+# - 768 bits: one-hot encoding of piece type and position (12 types × 64 squares)
+# - 5 additional features: side to move and castling rights
+
+# A simple feedforward network for evaluating chess positions.
+# Input: 773-dim vector from board encoding
+# Output: single scalar evaluation (e.g., approximating Stockfish score)
+
 class FlatNet(nn.Module):
     def __init__(self):
         super(FlatNet, self).__init__()
