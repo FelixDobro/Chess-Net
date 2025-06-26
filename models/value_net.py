@@ -21,16 +21,18 @@ class ChessNet(nn.Module):
         super().__init__()
         self.conv1 = nn.Conv2d(18, 64, kernel_size=3, padding=1)
         self.bn1 = nn.BatchNorm2d(64)
-        self.res_blocks = nn.Sequential(*[ResidualBlock(64) for _ in range(5)])
+        self.res_blocks = nn.Sequential(*[ResidualBlock(64) for _ in range(12)])
 
 
         self.value_head = nn.Sequential(
             nn.Conv2d(64, 64, kernel_size=1),
             nn.ReLU(),
+            nn.AdaptiveAvgPool2d((1, 1)),
             nn.Flatten(),
-            nn.Linear(64 * 8 * 8, 1024),
+            nn.Linear(64, 128),
             nn.ReLU(),
-            nn.Linear(1024, 1)
+            nn.Linear(128, 1)
+
         )
 
     def forward(self, x):

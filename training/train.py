@@ -1,12 +1,11 @@
 import torch
 import torch.nn.functional as F
-from torch.optim.lr_scheduler import ReduceLROnPlateau
 
+import webdataset as wds
 from torch.amp import GradScaler, autocast
 from torch.utils.data import DataLoader
 
 from config import config
-from data.zarr_dataset import ZarrDataset
 
 def train(model, logger):
     device = config["device"]
@@ -18,8 +17,12 @@ def train(model, logger):
         weight_decay=config["weight_decay"]
     )
 
-    dataset = ZarrDataset(config["path_X"], config["path_Y"], config["batch_size"])
-    loader = DataLoader(dataset, batch_size=1, num_workers=config["num_workers"], prefetch_factor=config["prefetch_per_worker"])
+    dataset = ( wds.WebDataset("data/webtest/shard-{000000..000099}.tar")
+    .shuffle(10000)
+    .decode("torch")
+    .to_tuple("input.pth", "target.pth")
+)
+    loader = DataLoader(dataset, batch_size=config["batch_size"], num_workers=config["num_workers"], prefetch_factor=config["prefetch_per_worker"])
     scaler = GradScaler(device)
 
     for epoch in range(config["epochs"]):
